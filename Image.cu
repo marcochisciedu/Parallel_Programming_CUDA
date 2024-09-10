@@ -1,7 +1,7 @@
 
 #include "Image.cuh"
-
-Image getImageFromFile(const std::string& filename){
+// create grayscale Image from file
+__host__ Image getImageFromFile(const std::string& filename){
     // load image, no transparency
     int width, height, original_no_channels;
     int channels = 3;
@@ -12,7 +12,7 @@ Image getImageFromFile(const std::string& filename){
         exit(1);
     }
 
-    // create Image
+    // create grayscale Image
     Image out_image{};
     out_image.width = width;
     out_image.height = height;
@@ -32,7 +32,8 @@ Image getImageFromFile(const std::string& filename){
     return out_image;
 }
 
-void saveImageToFile(Image image, const std::string& out_filename, const std::string& directory) {
+// save the grayscale Image to file
+__host__ void saveImageToFile(Image image, const std::string& out_filename, const std::string& directory) {
 
     int img_size = image.width * image.height;
     auto *img = static_cast<unsigned char *>(malloc(img_size));
@@ -41,6 +42,7 @@ void saveImageToFile(Image image, const std::string& out_filename, const std::st
         exit(1);
     }
 
+    // convert the pixels
     for(int i = 0; i < image.height; i++)
     {
         for(int j = 0; j < image.width; j++)
@@ -53,22 +55,29 @@ void saveImageToFile(Image image, const std::string& out_filename, const std::st
                    1, img, 100);
 }
 
-bool compareImages(Image first_img, Image second_img){
+// compare two output Images to check the results
+__host__ void compareImages(Image first_img, Image second_img){
     if(first_img.height != second_img.height){
-        return false;
+        printf("The images have different heights \n");
+        exit(1);
     }
     if(first_img.width != second_img.width){
-        return false;
+        printf("The images have different widths \n");
+        exit(1);
     }
     for(int i = 0; i < first_img.width * first_img.height; i++){
             if(first_img.pixels[ i ] != second_img.pixels[ i ]){
-                return false;
+                printf("The images are different at pixel %d \n", i+1);
+                printf("%d \n", first_img.pixels[i]);
+                printf("%d \n", second_img.pixels[i]);
+                exit(1);
             }
     }
-    return true;
+    printf("The images are the same \n");
 }
 
-Image generateImage(int width, int height, int seed) {
+// generate fake Image given its size
+__host__ Image generateImage(int width, int height, int seed) {
     // create image
     Image image{};
     image.width = width;
@@ -87,4 +96,64 @@ Image generateImage(int width, int height, int seed) {
     }
 
     return image;
+}
+
+// generate square Blur Kernel given its size
+__host__ Kernel generateBlurKernel(int size){
+    Kernel kernel{};
+    kernel.size= size;
+    kernel.pixels = (float*) malloc(size * size * sizeof(float));
+    for(int i=0; i<size*size; i++){
+        kernel.pixels[i]= 1/(float)(size*size);
+    }
+    return kernel;
+}
+
+// create a copy of the given Image
+__host__ Image copyImage(const Image& image) {
+    Image copy{};
+    copy.width = image.width;
+    copy.height = image.height;
+    copy.pixels = (int*) malloc(image.width * image.height * sizeof(int));
+
+    for(int i = 0; i < copy.width * copy.height; i++)
+        copy.pixels[i] = image.pixels[i];
+
+    return copy;
+}
+
+__host__ void copyFromHostToDevice(const Image& hostImage, Image& devImage) {
+    assert(hostImage.height == devImage.height && hostImage.width == devImage.width);
+    cudaMemcpy(devImage.pixels, hostImage.pixels, devImage.width*devImage.height* sizeof(int),
+               cudaMemcpyHostToDevice);
+}
+
+// allocate Image on the device
+__host__ Image allocateOnDevice(Image const &hostImage) {
+    Image devImage{};
+    devImage.width = hostImage.width;
+    devImage.height = hostImage.height;
+    cudaMalloc((void**)&devImage.pixels, devImage.width*devImage.height* sizeof(int));
+    copyFromHostToDevice(hostImage, devImage);
+    return devImage;
+}
+
+__host__ void copyFromDeviceToHost(Image const &devImage, Image &hostImage) {
+    assert(hostImage.height == devImage.height && hostImage.width == devImage.width);
+    cudaMemcpy(hostImage.pixels, devImage.pixels, devImage.width*devImage.height* sizeof(int),
+               cudaMemcpyDeviceToHost);
+}
+
+__host__ void freeImageHost(Image &hostImage) {
+    assert(hostImage.pixels != nullptr);
+    hostImage.width = 0;
+    hostImage.height = 0;
+    free(hostImage.pixels);
+}
+
+__host__ void freeImageDev(Image &devImage) {
+    assert(devImage.pixels != nullptr);
+    devImage.width = 0;
+    devImage.height = 0;
+    cudaFree(devImage.pixels);
 }
