@@ -56,24 +56,28 @@ __host__ void saveImageToFile(Image image, const std::string& out_filename, cons
 }
 
 // compare two output Images to check the results
-__host__ void compareImages(Image first_img, Image second_img){
+__host__ void compareImages(Image first_img, Image second_img, std::ofstream& outfile){
     if(first_img.height != second_img.height){
         printf("The images have different heights \n");
+        outfile<< "The images have different heights" <<std::endl;
         exit(1);
     }
     if(first_img.width != second_img.width){
         printf("The images have different widths \n");
+        outfile<< "The images have different widths" <<std::endl;
         exit(1);
     }
     for(int i = 0; i < first_img.width * first_img.height; i++){
             if(first_img.pixels[ i ] != second_img.pixels[ i ]){
                 printf("The images are different at pixel %d \n", i+1);
+                outfile<< "The images are different at pixel" << i+1<<std::endl;
                 printf("%d \n", first_img.pixels[i]);
                 printf("%d \n", second_img.pixels[i]);
                 exit(1);
             }
     }
     printf("The images are the same \n");
+    outfile<< "The images are the same" <<std::endl;
 }
 
 // generate fake Image given its size

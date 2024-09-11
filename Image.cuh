@@ -5,6 +5,8 @@
 #include <string>
 #include <random>
 #include <cassert>
+#include <fstream>
+#include <iostream>
 #include "stb_image/stb_image.h"
 #include "stb_image/stb_image_write.h"
 
@@ -24,7 +26,7 @@ __host__ Image getImageFromFile(const std::string& filename);
 
 __host__ void saveImageToFile(Image image, const std::string& filename,  const std::string& directory);
 
-__host__ void compareImages(Image first_img, Image second_img);
+__host__ void compareImages(Image first_img, Image second_img, std::ofstream& outfile);
 
 __host__ Image generateImage(int width, int height, int seed);
 
