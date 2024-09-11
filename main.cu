@@ -58,7 +58,6 @@ __host__ double timeGPU_tiling(Image input, Kernel kernel, Image output, dim3 gr
     // move pixel value to constant memory
     cudaMemcpyToSymbol(kernel_pixels, kernel.pixels, kernel.size*kernel.size*sizeof(float),
                        0, cudaMemcpyHostToDevice );
-
     size_t shared_memory_size = (block.x+ kernel.size -1) *  (block.x+ kernel.size -1) *sizeof(int);
 
     typedef std::chrono::high_resolution_clock Clock;
@@ -78,67 +77,104 @@ __host__ double timeGPU_tiling(Image input, Kernel kernel, Image output, dim3 gr
     return time.count();
 }
 
-int main() {
-    //Image gen_img = generateImage(512, 512, 11);
-    //saveImageToFile(gen_img, "rand.png", "Grayscale images");
-
-    Image image = getImageFromFile("cat.png");
-    Image output_image_seq = copyImage(image);
-    Image output_image_GPU = copyImage(image);
-    Image output_image_GPU_tiling = copyImage(image);
-    Kernel kernel = generateBlurKernel(5);
-
-    int block_width = 16;
-
-    dim3 grid((image.width+ block_width -1 )/ block_width, (image.height+ block_width -1)/block_width,1);
-    dim3 block(block_width, block_width);
-
+__host__ void testConvolution(int img_size, int kernel_size, int block_width, const int& iters,
+                              const std::string& input_dir,const std::string& output_dir){
     // outputfile to store the results
     std::ofstream outfile;
     outfile.open("results/Convolution_results.txt", std::ios_base::app);
-    if (!outfile.is_open()){
+    if (!outfile.is_open()) {
         printf("Error: Unable to write to Convolution_results.txt \n");
         exit(1);
     }
 
-    std::cout<< "Blurring "<< "cat.png" << " " << "with a "<< kernel.size<<"x"<<kernel.size<<
-    " kernel"<< std::endl;
-    outfile << "Blurring "<< "cat.png" << " " << "with a "<< kernel.size<<"x"<<kernel.size<<
-            " kernel"<< std::endl;
+    std::cout << "Blurring " << "rand" + std::to_string(img_size) + ".png" << " " << "with a " << kernel_size << "x"
+              << kernel_size <<" kernel" << std::endl;
+    outfile << "Blurring " << "rand" + std::to_string(img_size) + ".png" << " " << "with a " << kernel_size << "x"
+            << kernel_size <<" kernel" << std::endl;
 
-    std::cout<< "The size of the square block is: "<< block_width << " and the grid contains " << grid.x<< "x"<<
-    grid.y << "x" << grid.z << " blocks" << std::endl;
-    outfile << "The size of the square block is: "<< block_width << " and the grid contains " << grid.x<< "x"<<
+    dim3 grid((img_size + block_width - 1) / block_width, (img_size + block_width - 1) / block_width, 1);
+    dim3 block(block_width, block_width);
+
+
+    std::cout << "The size of the square block is: " << block_width << " and the grid contains " << grid.x << "x" <<
+              grid.y << "x" << grid.z << " blocks" << std::endl;
+    outfile << "The size of the square block is: " << block_width << " and the grid contains " << grid.x << "x" <<
             grid.y << "x" << grid.z << " blocks" << std::endl;
+    double mean_time_seq = 0, mean_time_GPU = 0, mean_speedup = 0, mean_time_GPU_tiling = 0, mean_speedup_tiling =0;
+    for(int iter=0; iter< iters; iter++) {
+        std::cout << "Total iteration: "<< iter+1 << "/" << iters << std::endl;
+        Image image = generateImage(img_size, img_size, 11+iter);
+        saveImageToFile(image, "rand" + std::to_string(img_size) + ".png", input_dir);
+        Image output_image_seq = copyImage(image);
+        Image output_image_GPU = copyImage(image);
+        Image output_image_GPU_tiling = copyImage(image);
+        Kernel kernel = generateBlurKernel(kernel_size);
 
-    double time_seq = timeSequential(image, kernel, output_image_seq);
-    printf("The sequential 2D convolution completed in %fms \n", time_seq);
-    outfile << "The sequential 2D convolution completed in "<< time_seq << "ms"<< std::endl;
-    saveImageToFile(output_image_seq, "blur_cat.png", "Output grayscale images");
+        double time_seq = timeSequential(image, kernel, output_image_seq);
+        mean_time_seq += time_seq;
+        saveImageToFile(output_image_seq, "blur_rand" + std::to_string(img_size) + ".png", output_dir);
 
-    double time_GPU = timeGPU(image, kernel, output_image_GPU, grid, block);
-    double speedup_GPU = time_seq/time_GPU;
-    printf("The GPU 2D convolution completed in %fms with a speedup of %f \n", time_GPU, speedup_GPU);
-    outfile << "The GPU 2D convolution completed in "<< time_GPU << "ms with a speedup of "<< speedup_GPU<< std::endl;
-    saveImageToFile(output_image_GPU, "blur_cat_GPU.png", "Output grayscale images");
+        double time_GPU = timeGPU(image, kernel, output_image_GPU, grid, block);
+        double speedup_GPU = time_seq / time_GPU;
+        mean_time_GPU += time_GPU;
+        mean_speedup += speedup_GPU;
+        saveImageToFile(output_image_GPU, "blur_rand" + std::to_string(img_size) + "_GPU.png", output_dir);
 
-    compareImages(output_image_seq, output_image_GPU, outfile);
+        compareImages(output_image_seq, output_image_GPU, outfile);
 
-    double time_GPU_tiling = timeGPU_tiling(image, kernel, output_image_GPU_tiling, grid, block);
-    double speedup_GPU_tiling = time_seq/time_GPU_tiling;
-    printf("The GPU 2D convolution with tiling completed in %fms with a speedup of %f \n", time_GPU_tiling, speedup_GPU_tiling);
-    outfile << "The GPU 2D convolution with tiling completed in "<< time_GPU_tiling
-    << "ms with a speedup of "<< speedup_GPU_tiling<< std::endl;
-    saveImageToFile(output_image_GPU_tiling, "blur_cat_GPU_tiling.png", "Output grayscale images");
+        double time_GPU_tiling = timeGPU_tiling(image, kernel, output_image_GPU_tiling, grid, block);
+        double speedup_GPU_tiling = time_seq / time_GPU_tiling;
+        mean_time_GPU_tiling += time_GPU_tiling;
+        mean_speedup_tiling += speedup_GPU_tiling;
+        saveImageToFile(output_image_GPU_tiling, "blur_rand" + std::to_string(img_size) + "_GPU_tiling.png",
+                        output_dir);
 
-    compareImages(output_image_seq, output_image_GPU_tiling, outfile);
+        compareImages(output_image_seq, output_image_GPU_tiling, outfile);
 
-    outfile<< std::endl;
+        freeImageHost(image);
+        freeImageHost(output_image_seq);
+        freeImageHost(output_image_GPU);
+    }
+    mean_time_seq /= iters, mean_time_GPU /= iters, mean_speedup /= iters,
+    mean_time_GPU_tiling /= iters, mean_speedup_tiling /= iters;
+    printf("On average, the sequential 2D convolution completed in %fms \n", mean_time_seq);
+    outfile << "On average, the sequential 2D convolution completed in " << mean_time_seq << "ms" << std::endl;
 
+    printf("On average, the GPU 2D convolution completed in %fms with a speedup of %f \n", mean_time_GPU, mean_speedup);
+    outfile << "On average, the GPU 2D convolution completed in " << mean_time_GPU << "ms with a speedup of " << mean_speedup
+            << std::endl;
 
-    freeImageHost(image);
-    freeImageHost(output_image_seq);
-    freeImageHost(output_image_GPU);
+    printf("On average, the GPU 2D convolution with tiling completed in %fms with a speedup of %f \n", mean_time_GPU_tiling,
+           mean_speedup_tiling);
+    outfile << "On average, the GPU 2D convolution with tiling completed in " << mean_time_GPU_tiling
+            << "ms with a speedup of " << mean_speedup_tiling << std::endl;
 
+    outfile << std::endl;
+}
+
+int main() {
+    // choose cuda device
+    cudaSetDevice(1);
+    // reminder that 2*block_width*block_width needs to be larger than (block_width+kernel_size-1)*(block_width+kernel_size-1)
+    // e.g. if kernel_size = 5 block_width needs to be at least 10
+    // max block_width is 32 since they are squares
+
+    // test different image siz
+    for(int size=8; size <= 32768; size = size*2){
+        testConvolution(size, 5, 16, 5,
+                        "Grayscale images", "Output grayscale images");
+    }
+
+    // test different block_width
+    for(int block_width=10; block_width <= 32; block_width = block_width+2){
+        testConvolution(8192, 5, block_width, 5,
+                        "Grayscale images", "Output grayscale images");
+    }
+
+    // test different kernels
+    for(int kernel_size=3; kernel_size <= 21; kernel_size = kernel_size+2){
+        testConvolution(8192, kernel_size, 32, 5,
+                        "Grayscale images", "Output grayscale images");
+    }
     return 0;
 }
