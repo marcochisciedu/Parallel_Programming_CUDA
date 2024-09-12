@@ -148,6 +148,21 @@ __host__ void copyFromDeviceToHost(Image const &devImage, Image &hostImage) {
                cudaMemcpyDeviceToHost);
 }
 
+__host__ void copyKernelFromHostToDevice(const Kernel& hostKernel, Kernel& devKernel) {
+    assert(hostKernel.size == devKernel.size );
+    cudaMemcpy(devKernel.pixels, hostKernel.pixels, devKernel.size*devKernel.size* sizeof(float),
+               cudaMemcpyHostToDevice);
+}
+
+// allocate Image on the device
+__host__ Kernel allocateKernelOnDevice(Kernel const &hostKernel) {
+    Kernel devKernel{};
+    devKernel.size = hostKernel.size;
+    cudaMalloc((void**)&devKernel.pixels, devKernel.size*devKernel.size* sizeof(float));
+    copyKernelFromHostToDevice(hostKernel, devKernel);
+    return devKernel;
+}
+
 __host__ void freeImageHost(Image &hostImage) {
     assert(hostImage.pixels != nullptr);
     hostImage.width = 0;
@@ -160,4 +175,16 @@ __host__ void freeImageDev(Image &devImage) {
     devImage.width = 0;
     devImage.height = 0;
     cudaFree(devImage.pixels);
+}
+
+__host__ void freeKernelHost(Kernel &hostKernel) {
+    assert(hostKernel.pixels != nullptr);
+    hostKernel.size = 0;
+    free(hostKernel.pixels);
+}
+
+__host__ void freeKernelDev(Kernel &devKernel) {
+    assert(devKernel.pixels != nullptr);
+    devKernel.size = 0;
+    cudaFree(devKernel.pixels);
 }

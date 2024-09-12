@@ -10,4 +10,10 @@ __global__ void GPU2DConvolution(const int* input_img, int* output_img,
 __global__ void GPU2DConvolutionTiling(const int* input_img,  int* output_img,
                                        int width, int height, int kernel_size);
 
+__global__ void GPU2DConvolution_kernel(const int* input_img,  int* output_img, const float* kernel,
+                                        int width, int height, int kernel_size);
+
+__global__ void GPU2DConvolutionTiling_kernel(const int* input_img,  int* output_img, const float* kernel,
+                                              int width, int height, int kernel_size);
+
 #endif //PARALLEL_PROGRAMMING_CUDA_GPUCONVOLUTION_CUH

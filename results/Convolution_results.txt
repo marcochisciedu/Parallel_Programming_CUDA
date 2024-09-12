@@ -148,7 +148,6 @@ On average, the sequential 2D convolution completed in 8487.61ms
 On average, the GPU 2D convolution completed in 12.7712ms with a speedup of 664.588
 On average, the GPU 2D convolution with tiling completed in 11.1419ms with a speedup of 761.773
 
-
 Blurring rand8192.png with a 3x3 kernel
 The size of the square block is: 16 and the grid contains 512x512x1 blocks
 On average, the sequential 2D convolution completed in 3377.83ms
@@ -190,3 +189,28 @@ The size of the square block is: 32 and the grid contains 256x256x1 blocks
 On average, the sequential 2D convolution completed in 26367.8ms
 On average, the GPU 2D convolution completed in 28.0562ms with a speedup of 939.821
 On average, the GPU 2D convolution with tiling completed in 17.5766ms with a speedup of 1500.16
+
+Blurring rand8192.png with a 3x3 non constant kernel
+The size of the square block is: 32 and the grid contains 256x256x1 blocks
+On average, the sequential 2D convolution completed in 3518.86ms
+On average, the GPU 2D convolution with non constant kernel  completed in 8.33006ms with a speedup of 422.375
+On average, the GPU 2D convolution with tiling and non constant kernel completed in 7.8215ms with a speedup of 449.884
+
+Blurring rand8192.png with a 5x5 non constant kernel
+The size of the square block is: 32 and the grid contains 256x256x1 blocks
+On average, the sequential 2D convolution completed in 8539.3ms
+On average, the GPU 2D convolution with non constant kernel  completed in 13.2338ms with a speedup of 645.265
+On average, the GPU 2D convolution with tiling and non constant kernel completed in 13.0395ms with a speedup of 654.882
+
+Blurring rand8192.png with a 7x7 non constant kernel
+The size of the square block is: 32 and the grid contains 256x256x1 blocks
+On average, the sequential 2D convolution completed in 16221.1ms
+On average, the GPU 2D convolution with non constant kernel  completed in 21.1077ms with a speedup of 768.49
+On average, the GPU 2D convolution with tiling and non constant kernel completed in 18.8374ms with a speedup of 861.11
+
+Blurring rand8192.png with a 9x9 non constant kernel
+The size of the square block is: 32 and the grid contains 256x256x1 blocks
+On average, the sequential 2D convolution completed in 30278.6ms
+On average, the GPU 2D convolution with non constant kernel  completed in 29.0441ms with a speedup of 1042.49
+On average, the GPU 2D convolution with tiling and non constant kernel completed in 27.9312ms with a speedup of 1084.03
+

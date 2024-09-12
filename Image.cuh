@@ -40,9 +40,17 @@ __host__ Image allocateOnDevice(Image const &hostImage);
 
 __host__ void copyFromDeviceToHost(Image const &devImage, Image &hostImage);
 
+__host__ void copyKernelFromHostToDevice(const Kernel& hostKernel, Kernel& devKernel);
+
+__host__ Kernel allocateKernelOnDevice(Kernel const &hostKernel);
+
 __host__ void freeImageHost(Image &hostImage);
 
 __host__ void freeImageDev(Image &devImage);
+
+__host__ void freeKernelHost(Kernel &hostKernel);
+
+__host__ void freeKernelDev(Kernel &devKernel);
 
 
 #endif //PARALLEL_PROGRAMMING_CUDA_IMAGE_CUH
